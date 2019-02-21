@@ -1,8 +1,10 @@
 package org.linlinjava.litemall.admin.web;
 
+import com.github.pagehelper.PageInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.linlinjava.litemall.admin.annotation.LoginAdmin;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.linlinjava.litemall.admin.annotation.RequiresPermissionsDesc;
 import org.linlinjava.litemall.core.util.RegexUtil;
 import org.linlinjava.litemall.core.util.ResponseUtil;
 import org.linlinjava.litemall.core.util.bcrypt.BCryptPasswordEncoder;
@@ -31,18 +33,16 @@ public class AdminUserController {
     @Autowired
     private LitemallUserService userService;
 
+    @RequiresPermissions("admin:user:list")
+    @RequiresPermissionsDesc(menu={"用户管理" , "会员管理"}, button="查询")
     @GetMapping("/list")
-    public Object list(@LoginAdmin Integer adminId,
-                       String username, String mobile,
+    public Object list(String username, String mobile,
                        @RequestParam(defaultValue = "1") Integer page,
                        @RequestParam(defaultValue = "10") Integer limit,
                        @Sort @RequestParam(defaultValue = "add_time") String sort,
                        @Order @RequestParam(defaultValue = "desc") String order) {
-        if (adminId == null) {
-            return ResponseUtil.unlogin();
-        }
         List<LitemallUser> userList = userService.querySelective(username, mobile, page, limit, sort, order);
-        int total = userService.countSeletive(username, mobile, page, limit, sort, order);
+        long total = PageInfo.of(userList).getTotal();
         Map<String, Object> data = new HashMap<>();
         data.put("total", total);
         data.put("items", userList);
@@ -51,16 +51,12 @@ public class AdminUserController {
     }
 
     @GetMapping("/username")
-    public Object username(@LoginAdmin Integer adminId, @NotEmpty String username) {
-        if (adminId == null) {
-            return ResponseUtil.unlogin();
+    public Object username(@NotEmpty String username) {
+        boolean exist = userService.checkByUsername(username);
+        if (exist) {
+            return ResponseUtil.ok("已存在");
         }
-
-        int total = userService.countSeletive(username, null, null, null, null, null);
-        if (total == 0) {
-            return ResponseUtil.ok("不存在");
-        }
-        return ResponseUtil.ok("已存在");
+        return ResponseUtil.ok("不存在");
     }
 
     private Object validate(LitemallUser user) {
@@ -85,11 +81,10 @@ public class AdminUserController {
         return null;
     }
 
+    @RequiresPermissions("admin:user:create")
+    @RequiresPermissionsDesc(menu={"用户管理" , "会员管理"}, button="添加")
     @PostMapping("/create")
-    public Object create(@LoginAdmin Integer adminId, @RequestBody LitemallUser user) {
-        if (adminId == null) {
-            return ResponseUtil.unlogin();
-        }
+    public Object create(@RequestBody LitemallUser user) {
         Object error = validate(user);
         if (error != null) {
             return error;
@@ -117,11 +112,10 @@ public class AdminUserController {
         return ResponseUtil.ok(user);
     }
 
+    @RequiresPermissions("admin:user:update")
+    @RequiresPermissionsDesc(menu={"用户管理" , "会员管理"}, button="编辑")
     @PostMapping("/update")
-    public Object update(@LoginAdmin Integer adminId, @RequestBody LitemallUser user) {
-        if (adminId == null) {
-            return ResponseUtil.unlogin();
-        }
+    public Object update(@RequestBody LitemallUser user) {
         Object error = validate(user);
         if (error != null) {
             return error;

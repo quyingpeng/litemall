@@ -14,7 +14,7 @@ import java.util.List;
 
 @Service
 public class LitemallAdminService {
-    private final Column[] result = new Column[]{Column.id, Column.username, Column.avatar};
+    private final Column[] result = new Column[]{Column.id, Column.username, Column.avatar, Column.roleIds};
     @Resource
     private LitemallAdminMapper adminMapper;
 
@@ -43,18 +43,6 @@ public class LitemallAdminService {
 
         PageHelper.startPage(page, limit);
         return adminMapper.selectByExampleSelective(example, result);
-    }
-
-    public int countSelective(String username, Integer page, Integer size, String sort, String order) {
-        LitemallAdminExample example = new LitemallAdminExample();
-        LitemallAdminExample.Criteria criteria = example.createCriteria();
-
-        if (!StringUtils.isEmpty(username)) {
-            criteria.andUsernameLike("%" + username + "%");
-        }
-        criteria.andDeletedEqualTo(false);
-
-        return (int) adminMapper.countByExample(example);
     }
 
     public int updateById(LitemallAdmin admin) {
